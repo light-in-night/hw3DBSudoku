@@ -7,6 +7,144 @@ import java.util.*;
  * CS108 Stanford.
  */
 public class Sudoku {
+	/**
+	 * The Spot Inner class wraps the functionality
+	 * on Sudoku matrix. 
+	 * The underlying grid structure which it works on, however,
+	 * can change.
+	 * !Note: this class has a natural ordering that is inconsistent with equals!
+	 * @author User Tornike Onoprishvili
+	 */
+	public class Spot implements Comparable<Spot> {
+		private final int irow, jcol, sqIstart, sqJstart;
+		private int lastValue;
+		/**
+		 * Creates a new spot with a given value
+		 * calculates the boundaries of it's parent square
+		 * @param val
+		 */
+		public Spot(int i, int j) {
+			irow = i;
+			jcol = j;
+			int squaresSide = SIZE / PART;
+			sqIstart = (irow / squaresSide) * squaresSide;
+			sqJstart = (jcol / squaresSide) * squaresSide;
+			lastValue = grid[irow][jcol];
+		}
+		
+		/**
+		 * Reverts the underlying value to
+		 * the originally assigned value in the grid.
+		 */
+		public void undo() {
+			grid[irow][jcol] = originalGrid[irow][jcol];
+		}
+		
+		/**
+		 * Returns true if the new value
+		 * does not break Sudoku rules.
+		 * @param newVal new value to check in this spot
+		 * @return true if and only if the new value is
+		 * 	applicable here.
+		 */
+		public boolean isGood(int newVal) {
+			if(Arrays.stream(ALLOWED)
+					.noneMatch(n -> n == newVal)) 
+				return false;
+			
+			for(int i = 0; i < SIZE; i++) {
+				if(grid[i][jcol] == newVal)
+					return false;
+			}
+			
+			for(int j = 0; j < SIZE; j++) {
+				if(grid[irow][j] == newVal)
+					return false;
+			}
+			
+			for(int i = sqIstart; i < sqIstart+PART; i++) {
+				for(int j = sqJstart; j < sqJstart+PART; j++) {
+					if(grid[i][j] == newVal)
+						return false;
+				}
+			}
+			return true;
+		}
+		
+		/**
+		 * returns the number of solutions 
+		 * for this spot.
+		 * @return
+		 */
+		public int solutions() {
+			if(isOriginal())
+				return 0;
+			int result = 0;
+			for(int n : ALLOWED) {
+				if(isGood(n))
+					result++;
+			}
+			return result;
+		}
+		
+		/**
+		 * Accesses the value of spot.
+		 * Change it to given value.
+		 * @param val integer to save in this spot
+		 */
+		public void set(int val) {
+			grid[irow][jcol] = val;
+		}
+		
+		/**
+		 * Returns the value residing at this spot 
+		 * @return value of grid at that spot
+		 */
+		public int get() {
+			return grid[irow][jcol];
+		}
+		
+
+		/**
+		 * @return the irow
+		 */
+		public int getRow() {
+			return irow;
+		}
+		
+		/**
+		 * @return the jcol
+		 */
+		public int getColumn() {
+			return jcol;
+		}
+		
+		/**
+		 * Is current spot on the original grid
+		 * @return true if this spot was filled on original grid.
+		 */
+		public boolean isOriginal() {
+			return originalGrid[irow][jcol] != EMPTY;
+		}
+
+		
+		/**
+		 * compareTo override, used to sort List of Spots for
+		 * number of solutions they have. used as a heuristic for
+		 * accelerating the process solution. 
+		 * @param o the object to compare to
+		 * @return an integer representing the result of comparison.
+		 * 			specifically: 
+		 * 			an integer more than 0 if this is more than o object
+		 *   		0 if objects are  equals
+		 *   		and less than 0 if this is less than o object
+		 */
+		@Override
+		public int compareTo(Spot o) {
+			return this.solutions() - o.solutions();
+		}
+	}
+	
 	// Provided grid data for main/testing
 	// The instance variable strategy is up to you.
 	
@@ -53,7 +191,16 @@ public class Sudoku {
 	public static final int SIZE = 9;  // size of the whole 9x9 puzzle
 	public static final int PART = 3;  // size of each 3x3 part
 	public static final int MAX_SOLUTIONS = 100;
+
+	public static final int EMPTY = 0; //denotes empty spot
+	public static final int[] ALLOWED = new int[]{1,2,3,4,5,6,7,8,9};
 	
+	private final int[][] originalGrid;
+	private int[][] grid;
+	private int[][] solvedGrid;
+	
+	long tickTocStart = 0;
+	long tickTocEnd = 0;
 	// Provided various static utility methods to
 	// convert data formats to int[][] grid.
 	
@@ -136,27 +283,148 @@ public class Sudoku {
 	}
 	
 	/**
-	 * Sets up based on the given ints.
+	 * Creates a new Sudoku instance.
+	 * @param ints represents the sudoku grid. must be 9X9
 	 */
 	public Sudoku(int[][] ints) {
-		// YOUR CODE HERE
+		grid = new int[SIZE][SIZE];
+		originalGrid = new int[SIZE][SIZE];
+		
+		for(int i = 0; i < SIZE; i++) {
+			for(int j = 0; j < SIZE; j++) {
+				grid[i][j] = ints[i][j];
+				originalGrid[i][j] = ints[i][j];
+			}
+		}
 	}
 	
-	
+	/**
+	 * utility method for copying a 2d integer array
+	 * @param toCopy grid to duplicate
+	 * @return newly created copy of the original grid.
+	 */
+	private int[][] duplicateGrid(int[][] toCopy) {
+		int[][] newGrid = new int[SIZE][SIZE];
+		for(int i = 0; i < SIZE; i++) {
+			System.arraycopy(toCopy[i], 0, newGrid[i], 0, SIZE);
+		}
+		return newGrid;
+	}
+
+	/**
+	 * This recursive helper method
+	 * calculates the number of all possible
+	 * solutions to the given sudoku grid
+	 * @param ls list of spots in grid. (better if ordered by available points)
+	 * @param iat index of current spot, each recursive step increments this, or returns 
+	 * 		value immediately.
+	 * @return number of possible solutions to the given grid.
+	 */
+	private int solveUtil(List<Spot> ls, int iat) {
+		if(iat >= ls.size()) {
+			if(solvedGrid == null)
+				solvedGrid = duplicateGrid(grid);
+			return 1;
+		}
+		
+		int result = 0;
+		for(int n : ALLOWED) {
+			Spot current = ls.get(iat);
+			if(current.isGood(n)) {
+				current.set(n);
+				result += solveUtil(ls, iat+1);
+				current.undo();
+				if(result >= MAX_SOLUTIONS)
+					break;
+			}
+		}
+		return result;
+	}
 	
 	/**
 	 * Solves the puzzle, invoking the underlying recursive search.
 	 */
 	public int solve() {
-		return 0; // YOUR CODE HERE
-	}
-	
-	public String getSolutionText() {
-		return ""; // YOUR CODE HERE
-	}
-	
-	public long getElapsed() {
-		return 0; // YOUR CODE HERE
+		tickTocStart = System.currentTimeMillis();
+		int result = solveUtil(bySolutions(), 0);
+		tickTocEnd = System.currentTimeMillis();
+		return result;
 	}
 
+	/**
+	 * Returns soution text.
+	 * @return solution text as 9 centences
+	 */
+	public String getSolutionText() {
+		return gridToText(solvedGrid);
+	}
+	
+	/**
+	 * Calculates elapsed time from some point
+	 * @return elapsed time in ms.
+	 */
+	public long getElapsed() {
+		return tickTocEnd - tickTocStart; // YOUR CODE HERE
+	}
+		
+	/**
+	 * Utility function, wraps every cell of the grid in
+	 * Spot object.
+	 *  
+	 * @return array of spots, each one representing on cell
+	 *  on sudoku grid
+	 */
+	private Spot[][] getSpots() {
+		Spot[][] spots = new Spot[SIZE][SIZE];
+		for(int i = 0; i < SIZE; i++) {
+			for(int j = 0; j < SIZE; j++) {
+				spots[i][j] = this.new Spot(i, j);
+			}
+		}
+		return spots;
+	}
+	
+	/**
+	 * Returns Ordered list of Spots by their solve
+	 * priority. more constrained goes to lesser 
+	 * indices.
+	 * @return ordered List of spots.
+	 */
+	private List<Spot> bySolutions() {
+		List<Spot> ls = new ArrayList<Spot>();
+		for(Spot[] spArr : getSpots() ) {
+			for(Spot sp : spArr) {
+				if(!sp.isOriginal())
+					ls.add(sp);
+			}
+		}
+		Collections.sort(ls);
+		return ls;
+	}
+	
+	/**
+	 * Utility method, creates a string that represents 
+	 * the grid
+	 * @param inputGrid the grid to represent as String
+	 * @return resulting String.
+	 */
+	private String gridToText(int[][] inputGrid) {
+		StringBuilder result = new StringBuilder();
+		for(int i = 0; i < SIZE; i++) {
+			for(int j = 0; j < SIZE; j++) {
+				result.append(Integer.toString(inputGrid[i][j]));
+				result.append(j == SIZE-1 ? "\n" : " ");
+			}
+		}
+		return result.toString();
+	}
+	
+	/**
+	 * Returns the original grid
+	 */
+	@Override
+	public String toString() {
+		return gridToText(originalGrid);
+	}
+	
 }
