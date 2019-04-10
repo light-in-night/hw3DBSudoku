@@ -1,3 +1,5 @@
+DROP DATABASE IF EXISTS hw3db;
+CREATE DATABASE hw3db;
 USE hw3db;
   -- >>>>>>>>>>>> change this line so it uses your database, not mine <<<<<<<<<<<<<<<
   
