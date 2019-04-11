@@ -84,7 +84,11 @@ public class View extends JFrame implements IView {
 	 * updates and redraws the table.
 	 */
 	private void updateTable() {
-		table = new JTable(model.getModel());
+		table.setModel(model.getModel(metropJTF.getText(),
+						continJTF.getText(),
+						Integer.parseInt(populJTF.getText()),
+						matchCbox.getSelectedIndex() == 0,
+						populationCbox.getSelectedIndex() == 0));
 	}
 
 	/**
@@ -118,6 +122,12 @@ public class View extends JFrame implements IView {
 		buttonPanel.setLayout(new GridLayout(2,1,20,20));
 		addBtn = new JButton("Add");
 		searchBtn = new JButton("Search");
+		searchBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				updateTable();
+			}
+		});
 		buttonPanel.add(addBtn);
 		buttonPanel.add(searchBtn);
 		wrapper.add(buttonPanel);

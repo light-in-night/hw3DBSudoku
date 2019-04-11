@@ -24,21 +24,6 @@ public class Model implements IModel {
 		listeners = new ArrayList<ActionListener>();
 		try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-
-//            Statement stmt = con.createStatement();
-//            stmt.executeQuery("USE " + DATABASE);
-//            ResultSet rs = stmt.executeQuery("SELECT * FROM metropolises");
-//
-//            // Sample Access Looking for Specific Item
-//            rs.absolute(3);
-//            System.out.println(rs.getString("metropolis"));
-//
-//            // Sample Loop Access
-//            while (rs.next()) {
-//                String s = rs.getString("metropolis");
-//                int i = rs.getInt("population");
-//                System.out.println(s + "\t" + i);
-//            }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -92,11 +77,51 @@ public class Model implements IModel {
 	}
 
 	@Override
-	public MyTableModel getModel() {
+	public IMyTableModel getModel() {
 		try(Connection con = getConnection();) {
 			Statement statement = con.createStatement();
 			statement.executeQuery("USE " + DATABASE);
 			ResultSet rs = statement.executeQuery( "SELECT * FROM metropolises;");
+			return new MyTableModel(rs);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return new MyTableModel();
+	}
+	
+	@Override
+	public IMyTableModel getModel(String met, String cont, int pop, boolean exact, boolean larger) {
+		try(Connection con = getConnection();) {
+			String condition1 = "metropolis";
+			if(!exact) {
+				condition1 += " LIKE \"%"+met+"%\" ";
+			} else {
+				condition1 += " = \"" + met + "\" ";
+			}
+			
+			
+			String condition2 = "continent";
+			if(!exact) {
+				condition2 += " LIKE \"%"+cont+"%\" ";
+			} else {
+				condition2 += "= \"" + cont + "\" ";
+			}
+			
+			String condition3 = " population ";
+			if(larger) {
+				condition3 += " > " + Integer.toString(pop) + " ";
+			} else {
+				condition3 += " <= " + Integer.toString(pop) + " ";
+			}
+			
+			String fullQuery = "SELECT * FROM metropolises " +
+						" WHERE " + condition1 +
+							 " AND " + condition2 +
+							 " AND " + condition3 +" ;";
+			
+			Statement statement = con.createStatement();
+			statement.executeQuery("USE " + DATABASE);
+			ResultSet rs = statement.executeQuery(fullQuery);
 			return new MyTableModel(rs);
 		} catch (SQLException e) {
 			e.printStackTrace();

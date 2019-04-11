@@ -10,14 +10,6 @@ import javax.swing.table.*;
  */
 public interface IModel {
 	/**
-	 * Search modifiers
-	 */
-	public static final int EXACT_MATCH = 0;
-	public static final int PARTIAL_MATCH = 1;
-	public static final int POP_LARGER = 0;
-	public static final int POP_SMALLER_OR_EQUAL = 1;
-	
-	/**
 	 * Adds new metropolice entry to the model.
 	 * @param metropolice string representing metropolice's name
 	 * @param continent name of the continent
@@ -36,7 +28,17 @@ public interface IModel {
 	 * returns them in the form of a MyTableModel
 	 * @return
 	 */
-	MyTableModel getModel();
+	IMyTableModel getModel();
 	
-
+	/**
+	 * Gets all matching database results
+	 * and returns them in the form of a MyTableModel
+	 * @param met
+	 * @param cont
+	 * @param pop
+	 * @param exact
+	 * @param larger
+	 * @return
+	 */
+	IMyTableModel getModel(String met, String cont, int pop, boolean exact, boolean larger);
 }
