@@ -1,5 +1,7 @@
 package dbmetropolis;
 
+import javax.swing.table.AbstractTableModel;
+
 public class Main {
 	public static void main(String[] args) {
 		 

@@ -8,5 +8,5 @@ package dbmetropolis;
  *
  */
 public interface IController {
-	
+	/* Empty as of yet. */
 }

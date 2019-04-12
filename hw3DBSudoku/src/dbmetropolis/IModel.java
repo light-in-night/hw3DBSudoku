@@ -1,44 +1,29 @@
 package dbmetropolis;
 
-import java.awt.event.ActionListener;
-import javax.swing.table.*;
+import javax.swing.table.TableModel;
 
-/**
- * Defines how model can be used.
- * @author User Tornike Onoprishvili
- *
- */
-public interface IModel {
+public interface IModel extends TableModel {
 	/**
-	 * Adds new metropolice entry to the model.
-	 * @param metropolice string representing metropolice's name
-	 * @param continent name of the continent
-	 * @param population integer denoting the population count
+	 * Searches the data and sets the
+	 * inner data structure to the contents of
+	 * the query.
+	 * 
+	 * @param m metropolis name
+	 * @param c continent name
+	 * @param pop population count
+	 * @param ex true = search for Exact match else partial match
+	 * @param lt true = more than specified pop else less than or equal to pop.
 	 */
-	void addNewEntry(String metropolice, String continent, int population);
+	void searchForData(String m, String c, Integer pop, boolean ex, boolean lt);
 	/**
-	 * notifies the registered users of this
-	 * class that an update happened in the database
-	 * @param updateListener listener object to register
+	 * Adds a new entry in the DB
+	 * @param m	metropolis name
+	 * @param c continent name
+	 * @param pop population count
 	 */
-	void addUpdateListener(ActionListener updateListener);
-	
+	void addData(String m, String c, Integer pop);
 	/**
-	 * Gets database results and 
-	 * returns them in the form of a MyTableModel
-	 * @return
+	 * Gets all the data from the DB
 	 */
-	IMyTableModel getModel();
-	
-	/**
-	 * Gets all matching database results
-	 * and returns them in the form of a MyTableModel
-	 * @param met
-	 * @param cont
-	 * @param pop
-	 * @param exact
-	 * @param larger
-	 * @return
-	 */
-	IMyTableModel getModel(String met, String cont, int pop, boolean exact, boolean larger);
+	void searchAll();
 }

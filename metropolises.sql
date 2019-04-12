@@ -1,8 +1,7 @@
 DROP DATABASE IF EXISTS hw3db;
 CREATE DATABASE hw3db;
 USE hw3db;
-  -- >>>>>>>>>>>> change this line so it uses your database, not mine <<<<<<<<<<<<<<<
-  
+
 DROP TABLE IF EXISTS metropolises;
  -- remove table if it already exists and start from scratch
 
@@ -21,3 +20,6 @@ INSERT INTO metropolises VALUES
 	("Melbourne","Australia",3900000),
 	("San Jose","North America",7354555),
 	("Rostov-on-Don","Europe",1052000);
+    
+SELECT *
+FROM hw3db.metropolises m;

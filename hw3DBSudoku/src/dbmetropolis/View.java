@@ -1,6 +1,7 @@
 package dbmetropolis;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
@@ -10,6 +11,9 @@ import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
+import javax.swing.table.AbstractTableModel;
 
 /**
  * This class displays the GUI and
@@ -53,9 +57,8 @@ public class View extends JFrame implements IView {
 		super("Mertopolis Viewer");
 		
 		this.model = model;
-		this.model.addUpdateListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
+		this.model.addTableModelListener(new TableModelListener() {
+			public void tableChanged(TableModelEvent e) {
 				updateTable();
 			}
 		});
@@ -67,10 +70,11 @@ public class View extends JFrame implements IView {
 		setupSearchPanel(upperPanel);
 		add(upperPanel, BorderLayout.PAGE_START);
 		
-		JPanel tablePanel = new JPanel();
-		table = new JTable();
-		tablePanel.add(table);
-		add(tablePanel, BorderLayout.LINE_START);
+		JScrollPane tablePanel = new JScrollPane();
+		//tablePanel.setPreferredSize(new Dimension(this.getWidth(),this.getHeight()));
+		table = new JTable(model);
+		tablePanel.setViewportView(table);
+		add(tablePanel, BorderLayout.CENTER);
 		
 		JPanel controlPanel = new JPanel(new FlowLayout());
 		setupControlPanel(controlPanel);
@@ -84,11 +88,7 @@ public class View extends JFrame implements IView {
 	 * updates and redraws the table.
 	 */
 	private void updateTable() {
-		table.setModel(model.getModel(metropJTF.getText(),
-						continJTF.getText(),
-						Integer.parseInt(populJTF.getText()),
-						matchCbox.getSelectedIndex() == 0,
-						populationCbox.getSelectedIndex() == 0));
+		table.setModel(model);
 	}
 
 	/**
@@ -125,15 +125,15 @@ public class View extends JFrame implements IView {
 		searchBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				updateTable();
+				searchTable();
 			}
-		});
+		});JPanel searchOptionsPanel = new JPanel(new GridLayout(2,1,20,20));
+		searchOptionsPanel.setBorder(new TitledBorder("Search Options"));
+
 		buttonPanel.add(addBtn);
 		buttonPanel.add(searchBtn);
 		wrapper.add(buttonPanel);
 		
-		JPanel searchOptionsPanel = new JPanel(new GridLayout(2,1,20,20));
-		searchOptionsPanel.setBorder(new TitledBorder("Search Options"));
 		populationCbox = new JComboBox<String>(populationPulldown);
 		matchCbox = new JComboBox<String>(matchPulldown);
 		searchOptionsPanel.add(populationCbox);
@@ -143,6 +143,19 @@ public class View extends JFrame implements IView {
 		controlPanel.add(wrapper);
 	}
 
+	private void searchTable() {
+		if(getMetropolice().isEmpty() ||
+				getContinent().isEmpty() ||
+				getPopulation() == 0)
+			model.searchAll();
+		else
+		model.searchForData(metropJTF.getText(),
+				continJTF.getText(),
+				getPopulation(),
+				matchCbox.getSelectedIndex() == 0,
+				populationCbox.getSelectedIndex() == 0);
+	}
+	
 	/**
 	 * Adds action listener to view. 
 	 * @param srchActionListener action to perform when search button is clicked
@@ -185,6 +198,15 @@ public class View extends JFrame implements IView {
 	 */
 	@Override
 	public int getPopulation() {
-		return Integer.parseInt(populJTF.getText());
+		Integer population = 0;
+		
+		try {
+			population = Integer.parseInt(populJTF.getText());
+		} catch (NumberFormatException ex) {
+			//ex.printStackTrace();
+		}
+		
+		return population;
 	}
+
 }

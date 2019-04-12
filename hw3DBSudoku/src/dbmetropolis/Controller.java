@@ -37,9 +37,8 @@ public class Controller implements IController {
 	private void addRoutine() {
 		String metropolice = view.getMetropolice();
 		String continent = view.getContinent();
-		int population = view.getPopulation();
-		
-		model.addNewEntry(metropolice, continent, population);
+		Integer population = view.getPopulation();
+		model.addData(metropolice, continent, population);
 	}
 
 }
