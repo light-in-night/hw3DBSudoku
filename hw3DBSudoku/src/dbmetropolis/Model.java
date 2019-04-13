@@ -56,7 +56,8 @@ public class Model extends AbstractTableModel implements IModel {
 	 * 	SQLException is thrown.
 	 */
 	private Connection getConnection() throws SQLException {
-		return DriverManager.getConnection("jdbc:mysql://" + SERVER, ACCOUNT, PASSWORD);
+		Connection con =  DriverManager.getConnection("jdbc:mysql://" + SERVER, ACCOUNT, PASSWORD);
+		return con;
 	}
 
 	@Override
@@ -92,9 +93,14 @@ public class Model extends AbstractTableModel implements IModel {
 	 * @return returns a string for adding a new entry
 	 * 	to the db
 	 */
-	private String getUpdateQuery(String met, String cont, Integer pop) {
-		return  "INSERT INTO metropolises " +
-				"VALUES ( \"" + met +"\",\""+ cont + "\" , " + Integer.toString(pop) + " )";
+	private PreparedStatement getUpdatePreparedStatment(Connection con, String m, String c, Integer pop) throws SQLException {
+		String res = "INSERT INTO metropolises VALUES ( ?, ?, ? )";
+		PreparedStatement ps = con.prepareStatement(res);
+		
+		ps.setString(1, m);
+		ps.setString(2, c);
+		ps.setLong(3, new Long(pop == null? 0 : pop));
+		return ps;
 	}
 	
 	/**
@@ -106,42 +112,76 @@ public class Model extends AbstractTableModel implements IModel {
 	 * @param exact true = search for Exact match else partial match
 	 * @param larget true = more than specified pop else less than or equal to pop.
 	 */
-	private String getSearchQuery(String met, String cont, Integer pop, boolean exact, boolean larger) {
-			String condition1 = "metropolis";
-			if(!exact) {
-				condition1 += " LIKE \"%"+met+"%\" ";
-			} else {
-				condition1 += " = \"" + met + "\" ";
-			}
-			
-			String condition2 = "continent";
-			if(!exact) {
-				condition2 += " LIKE \"%"+cont+"%\" ";
-			} else {
-				condition2 += "= \"" + cont + "\" ";
-			}
-			
-			String condition3 = " population ";
-			if(larger) {
-				condition3 += " > " + Integer.toString(pop) + " ";
-			} else {
-				condition3 += " <= " + Integer.toString(pop) + " ";
-			}
-			
-			String result = "SELECT * FROM metropolises " +
-						" WHERE " + condition1 +
-							 " AND " + condition2 +
-							 " AND " + condition3 +" ;";
-			return result;
+	private PreparedStatement getSearchPreparedStatment(Connection con, String m, String c, Integer pop, boolean ex, boolean larger) throws SQLException {
+		String base = "Select * From metropolises where";
+		
+		String cond1 = (m.isEmpty() ? " TRUE " : " metropolis " + (ex?"=":"LIKE") + " ? ") + " AND ";
+		String cond2 = (c.isEmpty() ? " TRUE " : " continent " + (ex?"=":"LIKE") + " ? ") + " AND ";
+		String cond3 = (pop == null ? " TRUE " : " population " + (larger?">":"<=") + " ? ") + " ; ";
+		
+		String res = base + cond1 + cond2 + cond3;
+		
+		PreparedStatement ps = con.prepareStatement(res);
+		
+		int currIndex = 0;
+		if(!m.isEmpty()) {
+			currIndex++;
+			String regexM = ex ? m : "%" + m + "%";
+			ps.setString(currIndex, regexM);
+		}
+		
+		if(!c.isEmpty()) {
+			currIndex++;
+			String regexC = ex ? c : "%" + c + "%";
+			ps.setString(currIndex, regexC);
+		}
+		
+		if(pop != null) {
+			currIndex++;
+			ps.setLong(currIndex, new Long(pop));
+		}
+		return ps;
 	}
-
+	
+	/**
+	 * Returns a correct sql query with given parameters
+	 * this query searches for results in db. 
+	 * 
+	 * searches return results even for empty strings.
+	 * 
+	 * this is used by void addData method, to get newly added rows from the
+	 * db.
+	 * 
+	 * @param met metropolis name
+	 * @param cont continent name
+	 * @param pop population count
+	 * @param exact true = search for Exact match else partial match
+	 * @param larget true = more than specified pop else less than or equal to pop.
+	 */
+	private PreparedStatement getExactSearchPreparedStatement(Connection con, String m, String c, Integer pop) throws SQLException {
+		String base = "Select * From metropolises where";
+		String cond1 = " metropolis = ? AND";
+		String cond2 = " continent = ? AND";
+		String cond3 = " population = ? ;";
+		String res = base + cond1 + cond2 + cond3;
+		
+		PreparedStatement psSearch = con.prepareStatement(res);
+		
+		psSearch.setString(1, m);
+		psSearch.setString(2, c);
+		psSearch.setLong(3, new Long(pop == null? 0 : pop));
+		
+		return psSearch;
+	}
+	
 	@Override
 	public void searchForData(String m, String c, Integer pop, boolean ex, boolean lt) {
 		try(Connection con = getConnection()) {
 			Statement stment = con.createStatement();
 			stment.executeQuery("USE " + DATABASE);
-			ResultSet rs = stment.executeQuery(getSearchQuery(m, c, pop, ex, lt));
 			
+			ResultSet rs = getSearchPreparedStatment(con, m, c, pop, ex, lt).executeQuery();
+			 
 	        data.clear();
 			while (rs.next()) {
 	          List<Object> ls = new ArrayList<Object>();
@@ -161,17 +201,30 @@ public class Model extends AbstractTableModel implements IModel {
 		try(Connection con = getConnection()) {
 			Statement stment = con.createStatement();
 			stment.executeQuery("USE " + DATABASE);
-			stment.executeUpdate(getUpdateQuery(m, c, pop));
+			
+			getUpdatePreparedStatment(con, m, c, pop).executeUpdate();
+			
+			ResultSet rs = getExactSearchPreparedStatement(con,m,c,pop).executeQuery();
+			 
+	        data.clear();
+			while (rs.next()) {
+	          List<Object> ls = new ArrayList<Object>();
+	          ls.add(rs.getString("metropolis"));
+	          ls.add(rs.getString("continent"));
+	          ls.add(rs.getInt("population"));
+	          data.add(ls);
+			}
+			fireTableDataChanged();
 		} catch (SQLException exc) {
 			exc.printStackTrace();
-		}
-		searchForData(m,c,pop,true,false);
+		} 
 	}
 	
 	/**
 	 * Retrieves all data from the db.
 	 * Updates the model data.
 	 */
+	@Override
 	public void searchAll() {
 		try(Connection con = getConnection()) {
 			Statement stment = con.createStatement();

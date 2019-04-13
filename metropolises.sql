@@ -23,3 +23,6 @@ INSERT INTO metropolises VALUES
     
 SELECT *
 FROM hw3db.metropolises m;
+
+COMMIT;
+ROLLBACK;

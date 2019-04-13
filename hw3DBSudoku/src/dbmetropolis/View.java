@@ -31,6 +31,7 @@ public class View extends JFrame implements IView {
 			new String[] {"Population larger than", "Smaller than or equal to"};
 	private static final String[] matchPulldown = 
 			new String[] {"Exact match", "Partial match"};
+	private final int TEXT_FIELD_LENGTH = 16;
 	
 	private JTextField metropJTF;
 	private JTextField continJTF;
@@ -71,7 +72,6 @@ public class View extends JFrame implements IView {
 		add(upperPanel, BorderLayout.PAGE_START);
 		
 		JScrollPane tablePanel = new JScrollPane();
-		//tablePanel.setPreferredSize(new Dimension(this.getWidth(),this.getHeight()));
 		table = new JTable(model);
 		tablePanel.setViewportView(table);
 		add(tablePanel, BorderLayout.CENTER);
@@ -96,9 +96,9 @@ public class View extends JFrame implements IView {
 	 * @param panel panel to add control surfaces to
 	 */
 	private void setupSearchPanel(JPanel panel) {
-		metropJTF = new JTextField(16);
-		continJTF = new JTextField(16);
-		populJTF = new JTextField(16);
+		metropJTF = new JTextField(TEXT_FIELD_LENGTH);
+		continJTF = new JTextField(TEXT_FIELD_LENGTH);
+		populJTF = new JTextField(TEXT_FIELD_LENGTH);
 		
 		panel.add(new JLabel("Metropolis: "));
 		panel.add(metropJTF);
@@ -142,19 +142,14 @@ public class View extends JFrame implements IView {
 		
 		controlPanel.add(wrapper);
 	}
-
+	
 	private void searchTable() {
-		if(getMetropolice().isEmpty() ||
-				getContinent().isEmpty() ||
-				getPopulation() == 0)
-			model.searchAll();
-		else
 		model.searchForData(metropJTF.getText(),
 				continJTF.getText(),
 				getPopulation(),
 				matchCbox.getSelectedIndex() == 0,
 				populationCbox.getSelectedIndex() == 0);
-	}
+	} 
 	
 	/**
 	 * Adds action listener to view. 
@@ -197,8 +192,8 @@ public class View extends JFrame implements IView {
 	 * @return string written in population JTextField
 	 */
 	@Override
-	public int getPopulation() {
-		Integer population = 0;
+	public Integer getPopulation() {
+		Integer population = null;
 		
 		try {
 			population = Integer.parseInt(populJTF.getText());

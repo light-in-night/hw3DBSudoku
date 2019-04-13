@@ -9,4 +9,5 @@ package dbmetropolis;
  */
 public interface IController {
 	/* Empty as of yet. */
+	/* This controller doesn't connect to other controllers */
 }

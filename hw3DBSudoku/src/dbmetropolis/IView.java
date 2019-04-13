@@ -40,5 +40,5 @@ public interface IView {
 	 * @return integer value of population text field.
 	 * @throws NumberFormatException - if the string does not contain a parsable integer. 
 	 */
-	int getPopulation();
+	Integer getPopulation();
 }
