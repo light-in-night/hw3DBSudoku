@@ -8,8 +8,8 @@ package dbmetropolis;
  */
 public class MyDBInfo {
 	
-	public static final String MYSQL_USERNAME = "tornike";
-	public static final String MYSQL_PASSWORD = "mysqlagoraphobia1A";
+	public static final String MYSQL_USERNAME = "testname";
+	public static final String MYSQL_PASSWORD = "testpass";
 	public static final String MYSQL_DATABASE_SERVER = "localhost";
 	public static final String MYSQL_DATABASE_NAME = "hw3db";
 
